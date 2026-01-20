@@ -27,26 +27,20 @@ void rules_top_n_print(StationIndex* idx, char* tokens[], int token_count, int n
         return;
     }
 
-    // 1. Allocation d'un tableau tampon pour récupérer les IDs triés (In-Order)
-    // Pour la démo, on suppose une capacité max de 1000 stations.
     int cap = 1000;
     int* ids = (int*)malloc(cap * sizeof(int));
     if (!ids) return;
 
-    // Récupération via l'API AVL existante
     int count = si_to_array(idx->root, ids, cap);
 
     printf("\n=== TOP-%d Stations (Filtre Postfix) ===\n", n);
     
     int matches = 0;
     for (int i = 0; i < count; i++) {
-        // Recherche de la station (O(log n))
         StationNode* node = si_find(idx->root, ids[i]);
         
         if (node) {
-            // 2. Filtrage par règle
             if (eval_rule_postfix(tokens, token_count, &node->info)) {
-                // 3. Sélection et Affichage
                 printf("  %d. Station %d | Power: %d kW | Slots: %d | Prix: %d cts\n",
                        matches + 1,
                        node->station_id,
@@ -55,7 +49,7 @@ void rules_top_n_print(StationIndex* idx, char* tokens[], int token_count, int n
                        node->info.price_cents);
                 
                 matches++;
-                if (matches >= n) break; // On a atteint le Top-N
+                if (matches >= n) break; 
             }
         }
     }
