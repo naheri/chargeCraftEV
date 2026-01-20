@@ -1,22 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>           /* Pour rand() */
-#include "station_index.h"  /* AVL */
-#include "slist.h"          /* MRU */
-#include "queue.h"          /* File FIFO */
-#include "events.h"         /* Dataset DS_EVENTS */
+#include <time.h>
+#include "station_index.h"
+#include "slist.h"
+#include "queue.h"
+#include "events.h"
 
-// Paramètres de la simulation
+
 #define NB_VEHICULES_SIMULES 8
-#define MAX_VEH_ID 20       /* Taille du tableau (pour supporter les IDs jusqu'à 20) */
-#define MRU_CAPACITY 5      /* Taille max de l'historique par véhicule */
+#define MAX_VEH_ID 20
+#define MRU_CAPACITY 5
 
 // Prototype manuel
 void rules_top_n_print(StationIndex* idx, char* tokens[], int token_count, int n);
 
 int main(void) {
     printf("=== CHARGECRAFT: DEMO FLOTTE (%d VEHICULES) ===\n\n", NB_VEHICULES_SIMULES);
-    srand(time(NULL)); // Init random
+    srand(time(NULL));
 
     // --- 1. INITIALISATION DES STRUCTURES ---
     StationIndex idx;
