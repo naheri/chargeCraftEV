@@ -2,10 +2,10 @@
 #define DS_STATION_INDEX_H
 
 typedef struct StationInfo {
-    int power_kW;      /* puissance */
-    int price_cents;   /* tarif en centimes */
-    int slots_free;    /* places libres */
-    int last_ts;       /* dernière mise à jour */
+    int power_kW;
+    int price_cents;
+    int slots_free;
+    int last_ts; /* dernière maj */
 } StationInfo;
 
 typedef struct StationNode {
