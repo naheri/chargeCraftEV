@@ -2,10 +2,10 @@
 #define DS_EVENTS_H
 
 typedef struct Event {
-    int ts;         /* timestamp simulé */
-    int vehicle_id; /* identifiant véhicule */
-    int station_id; /* identifiant station */
-    int action;     /* 1=plug_in, 0=plug_out, -1=fault/reset ... */
+    int ts;         
+    int vehicle_id;
+    int station_id;
+    int action;
 } Event;
 
 extern Event DS_EVENTS[];
