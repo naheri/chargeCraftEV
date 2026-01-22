@@ -14,11 +14,21 @@
 // Prototype manuel
 void rules_top_n_print(StationIndex* idx, char* tokens[], int token_count, int n);
 
+/**
+ * @brief Fonction principale du programme de simulation ChargeCraft.
+ * 
+ * Initialise les structures de données, charge les stations, ingère les événements 
+ * historiques et simulés, traite le flux d'événements, puis affiche les résultats 
+ * et nettoie les ressources allouées.
+ * 
+ * @return int Code de sortie du programme (0 si succès).
+ */
 int main(void) {
     printf("=== CHARGECRAFT: DEMO FLOTTE (%d VEHICULES) ===\n\n", NB_VEHICULES_SIMULES);
     srand(time(NULL));
 
     // --- 1. INITIALISATION DES STRUCTURES ---
+    // mise en place des index, file d'événements et historique MRU par véhicule
     StationIndex idx;
     si_init(&idx);
 
@@ -33,6 +43,7 @@ int main(void) {
     }
 
     // --- 2. PRÉ-CHARGEMENT DES STATIONS (AVL) ---
+    // ajout manuel des stations pour la simulation, certaines avec slots saturés ou vides
     printf("[INIT] Initialisation du réseau de bornes...\n");
     // On ajoute quelques stations supplémentaires pour que les 8 véhicules aient de la place
     si_add(&idx, 101, (StationInfo){22, 30, 5, 0});
@@ -48,7 +59,7 @@ int main(void) {
 
 
     // --- 3. INGESTION (DS_EVENTS + Simulation Aléatoire) ---
-    
+    // chargement des événements historique, puis génération aléatoire de trafic pour simulation
     // A. Chargement des événements statiques (Fichier fourni)
     printf("[INGESTION] Chargement de %d événements historiques (DS_EVENTS)...\n", DS_EVENTS_COUNT);
     for (int i = 0; i < DS_EVENTS_COUNT; i++) {
@@ -77,6 +88,7 @@ int main(void) {
 
 
     // --- 4. TRAITEMENT DU FLUX ---
+    // parcours de la file d'événements, mise à jour des stations et historiques MRU
     printf("[PROCESS] Traitement de la file d'événements...\n");
     Event e;
     while(q_dequeue(&q, &e)) {
@@ -103,6 +115,7 @@ int main(void) {
 
 
     // --- 5. RÉSULTATS FINAUX ---
+    // affichage des historiques des véhicules, exécution de requêtes top-n, et affichage visuel final
 
     // A. Affichage des historiques pour les 8 véhicules
     printf("[DEMO 1] Historiques de la flotte (MRU) :\n");
@@ -127,6 +140,7 @@ int main(void) {
 
 
     // --- 6. NETTOYAGE ---
+    // libération de toutes les ressources allouées pour éviter les fuites mémoire
     si_clear(&idx);
     q_clear(&q);
     // Nettoyage de chaque liste de la flotte

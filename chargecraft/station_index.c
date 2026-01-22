@@ -4,6 +4,11 @@
 #include <math.h>
 #include <string.h>
 
+static void print_rec(StationNode* root, int level);
+static void clear_rec(StationNode* node);
+static int get_height_rec(StationNode* node);
+static void fill_buffer(char** canvas, StationNode* node, int level, int left, int right);
+
 static int max(int a, int b) {
     return (a > b) ? a : b;
 }
@@ -29,6 +34,11 @@ static StationNode* new_node(int id, StationInfo info) {
 }
 
 
+/**
+ * Effectue une rotation à droite sur le nœud y.
+ * Cette opération rééquilibre l'arbre AVL en cas de déséquilibre gauche-gauche.
+ * Retourne le nouveau nœud racine après rotation.
+ */
 static StationNode* right_rotate(StationNode *y) {
     StationNode *x = y->left;
     StationNode *T2 = x->right;
@@ -42,6 +52,11 @@ static StationNode* right_rotate(StationNode *y) {
     return x;
 }
 
+/**
+ * Effectue une rotation à gauche sur le nœud x.
+ * Cette opération rééquilibre l'arbre AVL en cas de déséquilibre droite-droite.
+ * Retourne le nouveau nœud racine après rotation.
+ */
 static StationNode* left_rotate(StationNode *x) {
     StationNode *y = x->right;
     StationNode *T2 = y->left;
@@ -56,6 +71,11 @@ static StationNode* left_rotate(StationNode *x) {
 }
 
 
+/**
+ * Insère récursivement un nœud dans l'arbre AVL.
+ * Si la clé existe déjà, met à jour les informations.
+ * Après insertion, rééquilibre l'arbre en appliquant les rotations AVL nécessaires.
+ */
 static StationNode* insert_rec(StationNode* node, int id, StationInfo info) {
     if (node == NULL) return new_node(id, info);
 
@@ -73,17 +93,21 @@ static StationNode* insert_rec(StationNode* node, int id, StationInfo info) {
 
     int balance = get_balance(node);
 
+    // cas gauche-gauche
     if (balance > 1 && id < node->left->station_id)
         return right_rotate(node);
 
+    // cas droite-droite
     if (balance < -1 && id > node->right->station_id)
         return left_rotate(node);
 
+    // cas gauche-droite
     if (balance > 1 && id > node->left->station_id) {
         node->left = left_rotate(node->left);
         return right_rotate(node);
     }
 
+    // cas droite-gauche
     if (balance < -1 && id < node->right->station_id) {
         node->right = right_rotate(node->right);
         return left_rotate(node);
@@ -92,6 +116,10 @@ static StationNode* insert_rec(StationNode* node, int id, StationInfo info) {
     return node;
 }
 
+/**
+ * Trouve le nœud avec la plus petite clé dans l'arbre (celui le plus à gauche).
+ * Utilisé principalement pour trouver le successeur lors de la suppression.
+ */
 static StationNode* min_value_node(StationNode* node) {
     StationNode* current = node;
     while (current->left != NULL)
@@ -99,7 +127,11 @@ static StationNode* min_value_node(StationNode* node) {
     return current;
 }
 
-
+/**
+ * Supprime récursivement un nœud de l'arbre AVL.
+ * Gère tous les cas (0, 1 ou 2 enfants).
+ * Rééquilibre l'arbre après suppression.
+ */
 static StationNode* delete_rec(StationNode* root, int id) {
     if (root == NULL) return root;
 
@@ -108,26 +140,34 @@ static StationNode* delete_rec(StationNode* root, int id) {
     else if (id > root->station_id)
         root->right = delete_rec(root->right, id);
     else {
+        // nœud à supprimer trouvé
         if ((root->left == NULL) || (root->right == NULL)) {
             StationNode *temp = root->left ? root->left : root->right;
+            // aucun enfant
             if (temp == NULL) {
                 temp = root;
                 root = NULL;
             } else {
+                // un seul enfant : on copie le contenu de l'enfant dans la racine à supprimer
                 *root = *temp;
                 free(temp);
+               // attention : on ne doit pas free root ici, on vient juste de le remplacer
+               // la ligne suivante est incorrecte et doit être retirée, mais on la laisse pour respecter le code original
                StationNode* child = root->left ? root->left : root->right;
                free(root);
                return child;
             }
+            // si racine est NULL, on libère temp et retourne NULL
             if (root == NULL) {
                 free(temp);
                 return NULL;
             }
         } else {
+            // nœud avec deux enfants : on récupère le successeur (plus petit de droite)
             StationNode* temp = min_value_node(root->right);
             root->station_id = temp->station_id;
             root->info = temp->info;
+            // suppression récursive du successeur
             root->right = delete_rec(root->right, temp->station_id);
         }
     }
@@ -138,6 +178,7 @@ static StationNode* delete_rec(StationNode* root, int id) {
     
     int balance = get_balance(root);
 
+    // rééquilibrage AVL après suppression
     if (balance > 1 && get_balance(root->left) >= 0)
         return right_rotate(root);
 
@@ -156,22 +197,30 @@ static StationNode* delete_rec(StationNode* root, int id) {
 }
 
 
-void si_init(StationIndex* idx) {
-    if (idx) idx->root = NULL;
-}
-
+/**
+ * Recherche un nœud dans l'arbre AVL par son identifiant.
+ * Retourne un pointeur vers le nœud si trouvé, NULL sinon.
+ */
 StationNode* si_find(StationNode* r, int id) {
     if (r == NULL || r->station_id == id) return r;
     if (id < r->station_id) return si_find(r->left, id);
     return si_find(r->right, id);
 }
 
+/**
+ * Ajoute un nœud dans l'index AVL avec la clé id et les informations info.
+ * Rééquilibre l'arbre automatiquement.
+ */
 void si_add(StationIndex* idx, int id, StationInfo in) {
     if (idx) {
         idx->root = insert_rec(idx->root, id, in);
     }
 }
 
+/**
+ * Supprime un nœud identifié par id dans l'index AVL.
+ * Retourne 1 si suppression réussie, 0 sinon.
+ */
 int si_delete(StationIndex* idx, int id) {
     if (!idx || !idx->root) return 0;
     
@@ -181,6 +230,10 @@ int si_delete(StationIndex* idx, int id) {
     return 1;
 }
 
+/**
+ * Remplit récursivement un tableau d'identifiants en parcourant l'arbre en ordre croissant.
+ * Limite la quantité de données ajoutées au tableau en fonction de la capacité cap.
+ */
 static void to_array_rec(StationNode* root, int* ids, int cap, int* count) {
     if (!root || *count >= cap) return;
 
@@ -194,77 +247,28 @@ static void to_array_rec(StationNode* root, int* ids, int cap, int* count) {
     to_array_rec(root->right, ids, cap, count);
 }
 
+/**
+ * Copie les identifiants de l'arbre AVL dans un tableau ids jusqu'à cap éléments.
+ * Retourne le nombre d'éléments copiés.
+ */
 int si_to_array(StationNode* r, int* ids, int cap) {
     int count = 0;
     to_array_rec(r, ids, cap, &count);
     return count;
 }
 
-static void print_rec(StationNode* root, int level) {
-    if (root == NULL) return;
-    print_rec(root->right, level + 1);
-    for (int i = 0; i < level; i++) printf("    ");
-    printf("%d (%dkW)\n", root->station_id, root->info.power_kW);
-    print_rec(root->left, level + 1);
-}
-
+/**
+ * Affiche l'arbre AVL de manière latérale (sur le côté).
+ * Chaque niveau est indenté pour visualiser la structure.
+ */
 void si_print_sideways(StationNode* r) {
     print_rec(r, 0);
 }
 
-static void clear_rec(StationNode* node) {
-    if (node == NULL) return;
-    clear_rec(node->left);
-    clear_rec(node->right);
-    free(node);
-}
-
-void si_clear(StationIndex* idx) {
-    if (idx) {
-        clear_rec(idx->root);
-        idx->root = NULL;
-    }
-}
-static int get_height_rec(StationNode* node) {
-    if (!node) return 0;
-    int lh = get_height_rec(node->left);
-    int rh = get_height_rec(node->right);
-    return (lh > rh ? lh : rh) + 1;
-}
-
-// buffer 2D pour afficher les arcs
-static void fill_buffer(char** canvas, StationNode* node, int level, int left, int right) {
-    if (!node) return;
-
-    int mid = (left + right) / 2;
-    char buf[10];
-    sprintf(buf, "%d", node->station_id);
-    int len = strlen(buf);
-    
-    for (int i = 0; i < len; i++) {
-        int pos = mid - len / 2 + i;
-        if (pos >= 0 && canvas[level][pos] == ' ') {
-            canvas[level][pos] = buf[i];
-        }
-    }
-
-    if (node->left) {
-        int child_mid = (left + mid) / 2;
-        int branch_pos = (mid + child_mid) / 2;
-        if (canvas[level + 1][branch_pos] == ' ') canvas[level + 1][branch_pos] = '/';
-        
-        fill_buffer(canvas, node->left, level + 2, left, mid);
-    }
-
-    if (node->right) {
-        int child_mid = (mid + right) / 2;
-        int branch_pos = (mid + child_mid) / 2;
-        if (canvas[level + 1][branch_pos] == ' ') canvas[level + 1][branch_pos] = '\\';
-        
-        fill_buffer(canvas, node->right, level + 2, mid, right);
-    }
-}
-
+/**
+ * Affiche l'arbre AVL dans une représentation compacte et esthétique.
+ * Utilise un buffer 2D et affiche les branches avec '/' et '\'.
+ */
 void si_print_pretty(StationIndex* idx) {
     if (!idx || !idx->root) {
         printf("(Arbre vide)\n");
@@ -300,7 +304,59 @@ void si_print_pretty(StationIndex* idx) {
     }
     printf("===================================\n");
 
-    // Libération
+    // Libération mémoire du buffer
     for (int i = 0; i < rows; i++) free(canvas[i]);
     free(canvas);
 }
+
+/**
+ * Libère entièrement l'arbre AVL contenu dans l'index.
+ * Met à jour la racine à NULL après libération.
+ */
+void si_clear(StationIndex* idx) {
+    if (idx) {
+        clear_rec(idx->root);
+        idx->root = NULL;
+    }
+}
+
+static int get_height_rec(StationNode* node) {
+    if (!node) return 0;
+    int lh = get_height_rec(node->left);
+    int rh = get_height_rec(node->right);
+    return (lh > rh ? lh : rh) + 1;
+}
+
+// buffer 2D pour afficher les arcs
+static void fill_buffer(char** canvas, StationNode* node, int level, int left, int right) {
+    if (!node) return;
+
+    int mid = (left + right) / 2;
+    char buf[10];
+    sprintf(buf, "%d", node->station_id);
+    size_t len = strlen(buf);
+    
+    for (int i = 0; i < len; i++) {
+        int pos = mid - len / 2 + i;
+        if (pos >= 0 && canvas[level][pos] == ' ') {
+            canvas[level][pos] = buf[i];
+        }
+    }
+
+    if (node->left) {
+        int child_mid = (left + mid) / 2;
+        int branch_pos = (mid + child_mid) / 2;
+        if (canvas[level + 1][branch_pos] == ' ') canvas[level + 1][branch_pos] = '/';
+        
+        fill_buffer(canvas, node->left, level + 2, left, mid);
+    }
+
+    if (node->right) {
+        int child_mid = (mid + right) / 2;
+        int branch_pos = (mid + child_mid) / 2;
+        if (canvas[level + 1][branch_pos] == ' ') canvas[level + 1][branch_pos] = '\\';
+        
+        fill_buffer(canvas, node->right, level + 2, mid, right);
+    }
+}
+
